@@ -219,7 +219,8 @@ public class BuildJobs extends SimpleBuildWrapper {
 
         @Override
         public String getDisplayName() {
-            return "Set Build jobs Variables";
+            //build 和 jobs至今多个空格，2个空格，这样这个插件就能排在前面执行了
+            return "Set Build  Jobs Variables";
         }
 
         /**
