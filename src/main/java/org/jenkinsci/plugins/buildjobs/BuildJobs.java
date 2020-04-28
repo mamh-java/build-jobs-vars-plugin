@@ -85,7 +85,18 @@ public class BuildJobs extends SimpleBuildWrapper {
 
         listener.getLogger().println("the running jobs map  is " + map + "");
 
-        variables.put("BUILD_JOBS", map.toString());//"BUILD_USER"
+        variables.put("BUILD_ALL_JOBS", map.toString());
+
+        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+            String key = entry.getKey();
+            Integer value = entry.getValue();
+            if (value == 0) {
+                variables.put("BUILD_IDELE_JOBS", key); // 空闲的job
+            }
+            if (value == -1) {
+                variables.put("BUILD_DISABLE_JOBS", key);  // 禁用的job
+            }
+        }
     }
 
     private String evaluateMacro(Run<?, ?> build, TaskListener listener, String template) {
