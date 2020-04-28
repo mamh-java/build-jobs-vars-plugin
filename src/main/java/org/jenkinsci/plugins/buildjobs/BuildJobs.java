@@ -21,10 +21,13 @@ import hudson.model.TopLevelItem;
 import hudson.tasks.BuildWrapperDescriptor;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
+import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
+import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.kohsuke.stapler.AncestorInPath;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -63,17 +66,36 @@ public class BuildJobs extends SimpleBuildWrapper {
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
         LOGGER.info("public void setUp: " + this.jobs);
         Map<String, String> variables = new HashMap<>();
-        makeVariables(build, variables, listener);
+        makeVariables(build, listener, variables);
         for (Map.Entry<String, String> entry : variables.entrySet()) {
             context.env(entry.getKey(), entry.getValue());
         }
     }
 
-    private void makeVariables(Run<?, ?> build, Map<String, String> variables, TaskListener listener) {
+    private void makeVariables(Run<?, ?> build, TaskListener listener, Map<String, String> variables) {
+
         listener.getLogger().println("the current jobs list is " + jobs + "");
-        Map<String, Integer> map = getAllJobRunningNumber();
+
+        String newjobs = evaluateMacro(build, listener, jobs);
+
+        listener.getLogger().println("the new jobs list is " + newjobs + "");
+
+        Map<String, Integer> map = getAllJobRunningNumber(newjobs);
+
+
         listener.getLogger().println("the running jobs map  is " + map + "");
+
         variables.put("BUILD_JOBS", map.toString());//"BUILD_USER"
+    }
+
+    private String evaluateMacro(Run<?, ?> build, TaskListener listener, String template) {
+        try {
+            File workspace = build.getRootDir();
+            return TokenMacro.expandAll(build, new FilePath(workspace), listener, template);
+        } catch (InterruptedException | IOException | MacroEvaluationException e) {
+            LOGGER.info(e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -81,13 +103,13 @@ public class BuildJobs extends SimpleBuildWrapper {
      *
      * @return
      */
-    public Map<String, Integer> getAllJobRunningNumber( ) {
+    private Map<String, Integer> getAllJobRunningNumber(String jobsstr) {
         //先计算出每个job对应的队列里面的等待的个数，0表示队列中没有等待的。1表示这个job中有个一个任务在排队。
         HashMap<String, Integer> map = new HashMap<>();
 
         HashMap<String, Integer> queueMap = getQueueStatus(); // 获取当前队列状态。每个job在队列中的个数。
 
-        Iterable<String> iterable = Splitter.on(',').trimResults().omitEmptyStrings().split(jobs);
+        Iterable<String> iterable = Splitter.on(',').trimResults().omitEmptyStrings().split(jobsstr);
         List<String> jobs = ImmutableSet.copyOf(Iterables.filter(iterable, Predicates.not(Predicates.isNull()))).asList();
 
         for (String job : jobs) {
