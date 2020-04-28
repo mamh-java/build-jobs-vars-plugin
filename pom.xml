@@ -1,0 +1,90 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.jenkins-ci.plugins</groupId>
+        <artifactId>plugin</artifactId>
+        <version>3.3</version>
+    </parent>
+
+    <artifactId>build-jobs-vars-plugin</artifactId>
+    <version>1.0</version>
+    <packaging>hpi</packaging>
+    <name>Build jobs vars plugin</name>
+    <description>Sets jobs name build variables</description>
+
+    <url>https://github.com/mamh-java/build-jobs-vars-plugin</url>
+
+    <licenses>
+        <license>
+            <name>MIT license</name>
+            <comments>All source code is under the MIT license.</comments>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>mage</id>
+            <name>mage</name>
+            <email>mage@mage.com</email>
+        </developer>
+    </developers>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>mailer</artifactId>
+            <version>1.16</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-lang</groupId>
+            <artifactId>commons-lang</artifactId>
+            <version>2.6</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sonyericsson.hudson.plugins.rebuild</groupId>
+            <artifactId>rebuild</artifactId>
+            <version>1.29</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>parameterized-scheduler</artifactId>
+            <version>0.6.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jenkins-ci.plugins</groupId>
+            <artifactId>script-security</artifactId>
+            <version>1.16</version>
+        </dependency>
+
+    </dependencies>
+
+    <properties>
+        <jenkins.version>2.176.1</jenkins.version>
+        <java.level>8</java.level>
+    </properties>
+
+    <scm>
+        <connection>scm:git:ssh://github.com/mamh-java/build-jobs-vars-plugin.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/mamh-java/build-jobs-vars-plugin.git</developerConnection>
+        <url>https://github.com/mamh-java/build-jobs-vars-plugin</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <repositories>
+        <repository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </repository>
+    </repositories>
+
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>repo.jenkins-ci.org</id>
+            <url>http://repo.jenkins-ci.org/public/</url>
+        </pluginRepository>
+    </pluginRepositories>
+</project>
+
