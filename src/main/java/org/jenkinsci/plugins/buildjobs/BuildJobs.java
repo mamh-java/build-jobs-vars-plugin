@@ -8,9 +8,12 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Util;
+import hudson.model.AbstractDescribableImpl;
 import hudson.model.AbstractProject;
 import hudson.model.AutoCompletionCandidates;
 import hudson.model.BallColor;
+import hudson.model.Descriptor;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
@@ -29,6 +32,7 @@ import org.kohsuke.stapler.QueryParameter;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,10 +44,13 @@ public class BuildJobs extends SimpleBuildWrapper {
     private String jobs;
     private int choicenumber;
 
+    private List<ScheduledJobs> otherJobs; // 存放其他 job的。 可以自定义时间段来决定是否使用这些job
+
     @DataBoundConstructor
-    public BuildJobs(String jobs, int choicenumber) {
+    public BuildJobs(String jobs, int choicenumber, List<ScheduledJobs> otherJobs) {
         this.jobs = jobs;
         this.choicenumber = choicenumber;
+        this.otherJobs = otherJobs;
     }
 
     public String getJobs() {
@@ -62,6 +69,14 @@ public class BuildJobs extends SimpleBuildWrapper {
         this.choicenumber = choicenumber;
     }
 
+    public List<ScheduledJobs> getOtherJobs() {
+        return otherJobs;
+    }
+
+    public void setOtherJobs(List<ScheduledJobs> otherJobs) {
+        this.otherJobs = otherJobs;
+    }
+
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
         LOGGER.info("public void setUp: " + this.jobs);
@@ -69,6 +84,63 @@ public class BuildJobs extends SimpleBuildWrapper {
         makeVariables(build, listener, variables);
         for (Map.Entry<String, String> entry : variables.entrySet()) {
             context.env(entry.getKey(), entry.getValue());
+        }
+    }
+
+    public static class ScheduledJobs extends AbstractDescribableImpl<ScheduledJobs> implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private String jobname;
+        private int startTime;
+        private int endTime;
+
+
+        @DataBoundConstructor
+        public ScheduledJobs(String jobname, int startTime, int endTime) {
+            this.jobname = jobname;
+            this.startTime = startTime;
+            this.endTime = endTime;
+        }
+
+        public String getJobname() {
+            return jobname;
+        }
+
+        public void setJobname(String jobname) {
+            this.jobname = jobname;
+        }
+
+        public int getStartTime() {
+            return startTime;
+        }
+
+        public void setStartTime(int startTime) {
+            this.startTime = startTime;
+        }
+
+        public int getEndTime() {
+            return endTime;
+        }
+
+        public void setEndTime(int endTime) {
+            this.endTime = endTime;
+        }
+
+        @Extension
+        public static class DescriptorImpl extends Descriptor<ScheduledJobs> {
+            @Override
+            public String getDisplayName() {
+                return "";
+            }
+        }
+
+        @Override
+        public String toString() {
+            return "ScheduledJobs{" +
+                    "jobname='" + jobname + '\'' +
+                    ", startTime=" + startTime +
+                    ", endTime=" + endTime +
+                    '}';
         }
     }
 
