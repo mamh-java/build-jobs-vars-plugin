@@ -33,9 +33,12 @@ import org.kohsuke.stapler.QueryParameter;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 public class BuildJobs extends SimpleBuildWrapper {
@@ -131,6 +134,27 @@ public class BuildJobs extends SimpleBuildWrapper {
             @Override
             public String getDisplayName() {
                 return "";
+            }
+            /**
+             * Autocompletion method
+             * <p>
+             * Copied from hudson.tasks.BuildTrigger.doAutoCompleteChildProjects(String value)
+             *
+             * @param value
+             * @return
+             */
+            public AutoCompletionCandidates doAutoCompleteJobname(@QueryParameter String value, @AncestorInPath ItemGroup context) {
+                AutoCompletionCandidates candidates = new AutoCompletionCandidates();
+                List<Job> jobs = Jenkins.get().getAllItems(Job.class);
+                for (Job job : jobs) {
+                    String relativeName = job.getRelativeNameFrom(context);
+                    if (relativeName.startsWith(value)) {
+                        if (job.hasPermission(Item.READ)) {
+                            candidates.add(relativeName);
+                        }
+                    }
+                }
+                return candidates;
             }
         }
 

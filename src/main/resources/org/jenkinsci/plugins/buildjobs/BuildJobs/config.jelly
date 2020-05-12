@@ -13,7 +13,7 @@
                     <br/>
 
                     <f:entry field="jobname" title="${%jobname}">
-                        <f:textbox/>
+                        <f:textbox autoCompleteDelimChar=","/>
                     </f:entry>
 
                     <f:entry field="startTime" title="${%start time}">
