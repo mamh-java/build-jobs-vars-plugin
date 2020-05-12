@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.buildjobs;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableSet;
@@ -172,11 +173,14 @@ public class BuildJobs extends SimpleBuildWrapper {
 
         listener.getLogger().println("the current jobs list is " + jobs + "");
 
-        String newjobs = evaluateMacro(build, listener, jobs);
-
+        String newjobs = evaluateMacro(build, listener, jobs); //展开默认的 this.jobs 变量中的
         listener.getLogger().println("the new jobs list is " + newjobs + "");
 
-        Map<String, Integer> map = getAllJobRunningNumber(newjobs);
+        String otherjobs = evaluateOther(build, listener, otherJobs); // 展开其他jobs。 也就是 otherJobs 中的
+        listener.getLogger().println("the otherjobs list is " + otherjobs + "");
+
+        String s = Joiner.on(",").skipNulls().join(newjobs, otherjobs);
+        Map<String, Integer> map = getAllJobRunningNumber(s);
 
 
         listener.getLogger().println("the running jobs map  is " + map + "");
@@ -193,6 +197,28 @@ public class BuildJobs extends SimpleBuildWrapper {
                 variables.put("BUILD_DISABLE_JOBS", key);  // 禁用的job
             }
         }
+    }
+
+    private String evaluateOther(Run<?, ?> build, TaskListener listener, List<ScheduledJobs> otherJobs) {
+        List<String> list = new ArrayList<>();
+        for (ScheduledJobs job : otherJobs) {
+            int startTime = job.getStartTime();
+            int endTime = job.getEndTime();
+            String jobname = job.getJobname();
+            String newjobname = evaluateMacro(build, listener, jobname); // 展开后的jobname
+            if(checkTime(startTime, endTime)){
+                List<String> l = getJobStringtoList(newjobname); // 先按照逗号分割一些，然后统一加到list中去
+                list.addAll(l);
+            }
+        }
+        String s = getJobListtoString(list);
+        return s;
+    }
+
+    private boolean checkTime(int startTime, int endTime) {
+        //TODO 检查当前时间是否在设置的 startTime 和 endTime之间
+
+        return true;
     }
 
     private String evaluateMacro(Run<?, ?> build, TaskListener listener, String template) {
@@ -216,8 +242,7 @@ public class BuildJobs extends SimpleBuildWrapper {
 
         HashMap<String, Integer> queueMap = getQueueStatus(); // 获取当前队列状态。每个job在队列中的个数。
 
-        Iterable<String> iterable = Splitter.on(',').trimResults().omitEmptyStrings().split(jobsstr);
-        List<String> jobs = ImmutableSet.copyOf(Iterables.filter(iterable, Predicates.not(Predicates.isNull()))).asList();
+        List<String> jobs = getJobStringtoList(jobsstr);
 
         for (String job : jobs) {
             TopLevelItem topLevelItem = Jenkins.get().getItem(job);
@@ -249,6 +274,16 @@ public class BuildJobs extends SimpleBuildWrapper {
 
         return map;
 
+    }
+
+    private List<String> getJobStringtoList(String jobsstr) {
+        Iterable<String> iterable = Splitter.on(',').trimResults().omitEmptyStrings().split(jobsstr);
+        return ImmutableSet.copyOf(Iterables.filter(iterable, Predicates.not(Predicates.isNull()))).asList();
+    }
+
+    private String getJobListtoString(List list){
+        String s = Joiner.on(",").skipNulls().join(list); // 最后用逗号组合到一起
+        return s;
     }
 
     private HashMap<String, Integer> getQueueStatus() {
