@@ -300,47 +300,6 @@ public class BuildJobs extends SimpleBuildWrapper {
         return queueMap;
     }
 
-
-//    public List getJobRunningStatus(List<String>> jobs) {
-//        List statusList = new ArrayList();
-//        if (jobs == null) {
-//            return statusList;
-//        }
-//        //todo 这里需要参考python代码优化
-//        Map<String, Integer> allJobRunningNumber = getAllJobRunningNumber(jobs);
-//
-//        TreeMap<Integer, Map> status = new TreeMap<>((o1, o2) -> o2 - o1);
-//        for (int level = 0; level < jobs.size(); level++) {
-//            List<String> job = jobs.get(level);
-//
-//            for (String jobname : job) {
-//                int num = allJobRunningNumber.getOrDefault(jobname, -1);
-//                if (num < 0) {
-//                    continue;
-//                }
-//
-//                Map map = status.getOrDefault(num,
-//                        new TreeMap<Integer, List>((o1, o2) -> o2 - o1));
-//
-//                List list = (List) map.getOrDefault(level, new ArrayList<>());
-//                list.add(jobname + " : " + num);
-//
-//                map.put(level, list);
-//
-//                status.put(num, map);
-//            }
-//        } //end for
-//
-//        for (Map<Integer, Map> maps : status.values()) {
-//            for (Object mm : maps.values()) {
-//                List list = (List) mm;
-//                Collections.shuffle(list);
-//                statusList.addAll(list);
-//            }
-//        }
-//        return statusList;
-//    }
-
     @Extension
     public static class DescriptorImpl extends BuildWrapperDescriptor {
         @Override
