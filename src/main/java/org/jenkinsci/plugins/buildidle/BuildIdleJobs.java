@@ -189,11 +189,11 @@ public class BuildIdleJobs extends SimpleBuildWrapper {
 
         variables.put("BUILD_ALL_JOBS", getListtoString(jobRunningStatus));
 
-        int choice = 1;
+        int choice = choicenumber;
         if (choicenumber <= 0) {
             choice = 1;
         }
-        if (choicenumber > jobRunningSize) {
+        if (choicenumber >= jobRunningSize) {
             choice = jobRunningSize;
         }
 
