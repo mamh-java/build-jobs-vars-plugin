@@ -35,7 +35,7 @@
 
 
         <f:entry title="${%Choice Number}" field="choicenumber">
-            <f:number clazz="non-negative-number-required" min="1" step="1"/> <!--多个jobs中选择1个。 默认的-->
+            <f:number clazz="non-negative-number-required" min="1" step="1" default="1"/> <!--多个jobs中选择1个。 默认的-->
         </f:entry>
     </f:advanced>
 
