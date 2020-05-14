@@ -35,9 +35,11 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 
 public class BuildJobs extends SimpleBuildWrapper {
@@ -169,53 +171,43 @@ public class BuildJobs extends SimpleBuildWrapper {
     }
 
     private void makeVariables(Run<?, ?> build, TaskListener listener, Map<String, String> variables) {
+        List<List<String>> jobList = new ArrayList<>();
 
-        listener.getLogger().println("the current jobs list is " + jobs + "");
-
-        String newjobs = evaluateMacro(build, listener, jobs); //展开默认的 this.jobs 变量中的
+        List<String> newjobs = evaluateMacro(build, listener, jobs); //展开默认的 this.jobs 变量中的
         listener.getLogger().println("the new jobs list is " + newjobs + "");
+        jobList.add(newjobs);// 先加上这个默认的job list
 
-        String otherjobs = evaluateOther(build, listener, otherJobs); // 展开其他jobs。 也就是 otherJobs 中的
-        listener.getLogger().println("the otherjobs list is " + otherjobs + "");
+        List<List<String>> otherjobs = evaluateOther(build, listener, otherJobs); // 展开其他jobs。 也就是 otherJobs 中的
+        listener.getLogger().println("the other jobs list is " + otherjobs + "");
+        jobList.addAll(otherjobs);
+        listener.getLogger().println("the all list is " + jobList + "");
 
-        String s = Joiner.on(",").skipNulls().join(newjobs, otherjobs);
-        Map<String, Integer> map = getAllJobRunningNumber(s);
+        List<String> jobRunningStatus = getJobRunningStatus(jobList);
 
+        listener.getLogger().println("the jobRunningStatus  is " + getJobListtoString(jobRunningStatus) + "");
 
-        listener.getLogger().println("the running jobs map  is " + map + "");
+        variables.put("BUILD_ALL_JOBS", getJobListtoString(jobRunningStatus));
 
-        variables.put("BUILD_ALL_JOBS", map.toString());
-
-        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-            String key = entry.getKey();
-            Integer value = entry.getValue();
-            if (value == 0) {
-                variables.put("BUILD_IDELE_JOBS", key); // 空闲的job
-            }
-            if (value == -1) {
-                variables.put("BUILD_DISABLE_JOBS", key);  // 禁用的job
-            }
-        }
     }
 
-    private String evaluateOther(Run<?, ?> build, TaskListener listener, List<ScheduledJobs> otherJobs) {
-        List<String> list = new ArrayList<>();
+    private List<List<String>> evaluateOther(Run<?, ?> build, TaskListener listener, List<ScheduledJobs> otherJobs) {
+        List<List<String>> list = new ArrayList<>();
+
         for (ScheduledJobs job : otherJobs) {
             int startTime = job.getStartTime();
             int endTime = job.getEndTime();
             String jobname = job.getJobname();
-            String newjobname = evaluateMacro(build, listener, jobname); // 展开后的jobname
+
+            List<String> newjobname = evaluateMacro(build, listener, jobname); // 展开后的jobname
 
             listener.getLogger().println("the startTime is " + startTime + "， endTime is " + endTime);
             listener.getLogger().println("the newjobname is " + newjobname);
 
             if (checkHourInRange(startTime, endTime)) {
-                List<String> l = getJobStringtoList(newjobname); // 先按照逗号分割一些，然后统一加到list中去
-                list.addAll(l);
+                list.add(newjobname);
             }
         }
-        String s = getJobListtoString(list);
-        return s;
+        return list;
     }
 
     private boolean checkHourInRange(int startTime, int endTime) { // 检测当前小时 是否在给定的时间之间
@@ -240,14 +232,16 @@ public class BuildJobs extends SimpleBuildWrapper {
         return false;
     }
 
-    private String evaluateMacro(Run<?, ?> build, TaskListener listener, String template) {
+    private List<String> evaluateMacro(Run<?, ?> build, TaskListener listener, String template) {
+        List<String> list = new ArrayList<>();
         try {
             File workspace = build.getRootDir();
-            return TokenMacro.expandAll(build, new FilePath(workspace), listener, template);
+            String s = TokenMacro.expandAll(build, new FilePath(workspace), listener, template);
+            list.addAll(getJobStringtoList(s));
         } catch (InterruptedException | IOException | MacroEvaluationException e) {
             LOGGER.info(e.getMessage());
-            return null;
         }
+        return list;
     }
 
     /**
@@ -255,15 +249,13 @@ public class BuildJobs extends SimpleBuildWrapper {
      *
      * @return
      */
-    private Map<String, Integer> getAllJobRunningNumber(String jobsstr) {
+    private Map<String, Integer> getAllJobRunningNumber(List<String> jobsList) {
         //先计算出每个job对应的队列里面的等待的个数，0表示队列中没有等待的。1表示这个job中有个一个任务在排队。
         HashMap<String, Integer> map = new HashMap<>();
 
         HashMap<String, Integer> queueMap = getQueueStatus(); // 获取当前队列状态。每个job在队列中的个数。
 
-        List<String> jobs = getJobStringtoList(jobsstr);
-
-        for (String job : jobs) {
+        for (String job : jobsList) {
             TopLevelItem topLevelItem = Jenkins.get().getItem(job);
             if (topLevelItem instanceof AbstractProject) {
                 String name = topLevelItem.getName();
@@ -300,7 +292,7 @@ public class BuildJobs extends SimpleBuildWrapper {
         return ImmutableSet.copyOf(Iterables.filter(iterable, Predicates.not(Predicates.isNull()))).asList();
     }
 
-    private String getJobListtoString(List list) {
+    private String getJobListtoString(List<String> list) {
         String s = Joiner.on(",").skipNulls().join(list); // 最后用逗号组合到一起
         return s;
     }
@@ -317,6 +309,44 @@ public class BuildJobs extends SimpleBuildWrapper {
             }
         }
         return queueMap;
+    }
+
+    public List<String> getJobRunningStatus(List<List<String>> jobsList) {
+        List<String> statusList = new ArrayList();
+        if (jobsList == null) {
+            return statusList;
+        }
+        List<String> jobnameList = new ArrayList();
+        for (List<String> list : jobsList) {
+            jobnameList.addAll(list);
+        }
+        Map<String, Integer> allJobRunningNumber = getAllJobRunningNumber(jobnameList);
+
+        TreeMap<Integer, Map> status = new TreeMap<>((o1, o2) -> o2 - o1);
+        for (int level = 0; level < jobsList.size(); level++) {
+            List<String> job = jobsList.get(level);
+
+            for (String jobname : job) {
+                int num = allJobRunningNumber.getOrDefault(jobname, -1);
+                if (num < 0) {
+                    continue;
+                }
+                Map map = status.getOrDefault(num, new TreeMap<Integer, List>((o1, o2) -> o2 - o1));
+                List list = (List) map.getOrDefault(level, new ArrayList<>());
+                list.add(jobname + ":" + num);
+                map.put(level, list);
+                status.put(num, map);
+            }
+        } //end for
+
+        for (Map<Integer, Map> maps : status.values()) {
+            for (Object mm : maps.values()) {
+                List list = (List) mm;
+                Collections.shuffle(list);
+                statusList.addAll(list);
+            }
+        }
+        return statusList;
     }
 
     @Extension
