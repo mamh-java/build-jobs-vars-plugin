@@ -9,7 +9,6 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
-import hudson.Util;
 import hudson.model.AbstractDescribableImpl;
 import hudson.model.AbstractProject;
 import hudson.model.AutoCompletionCandidates;
@@ -34,12 +33,11 @@ import org.kohsuke.stapler.QueryParameter;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.logging.Logger;
 
 public class BuildJobs extends SimpleBuildWrapper {
@@ -136,6 +134,7 @@ public class BuildJobs extends SimpleBuildWrapper {
             public String getDisplayName() {
                 return "";
             }
+
             /**
              * Autocompletion method
              * <p>
@@ -206,7 +205,11 @@ public class BuildJobs extends SimpleBuildWrapper {
             int endTime = job.getEndTime();
             String jobname = job.getJobname();
             String newjobname = evaluateMacro(build, listener, jobname); // 展开后的jobname
-            if(checkTime(startTime, endTime)){
+
+            listener.getLogger().println("the startTime is " + startTime + "， endTime is " + endTime);
+            listener.getLogger().println("the newjobname is " + newjobname);
+
+            if (checkHourInRange(startTime, endTime)) {
                 List<String> l = getJobStringtoList(newjobname); // 先按照逗号分割一些，然后统一加到list中去
                 list.addAll(l);
             }
@@ -215,10 +218,26 @@ public class BuildJobs extends SimpleBuildWrapper {
         return s;
     }
 
-    private boolean checkTime(int startTime, int endTime) {
-        //TODO 检查当前时间是否在设置的 startTime 和 endTime之间
-
-        return true;
+    private boolean checkHourInRange(int startTime, int endTime) { // 检测当前小时 是否在给定的时间之间
+        if (startTime > 24 || startTime < 0 || endTime > 24 || endTime < 0) {
+            return true;// 范围不合理，直接返回true
+        }
+        if (startTime == endTime) {
+            return false;
+        }
+        LocalTime time = LocalTime.now();
+        int hour = time.getHour();
+        if (startTime > endTime) { // 20 ~ 1 表示晚上20点 到 第二天 1点
+            if (hour >= startTime || hour <= endTime) {
+                return true;
+            }
+        }
+        if (startTime < endTime) { // 1 ~ 8 点的 表示早上1点到 早上8点
+            if (hour >= startTime && hour <= endTime) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private String evaluateMacro(Run<?, ?> build, TaskListener listener, String template) {
@@ -281,7 +300,7 @@ public class BuildJobs extends SimpleBuildWrapper {
         return ImmutableSet.copyOf(Iterables.filter(iterable, Predicates.not(Predicates.isNull()))).asList();
     }
 
-    private String getJobListtoString(List list){
+    private String getJobListtoString(List list) {
         String s = Joiner.on(",").skipNulls().join(list); // 最后用逗号组合到一起
         return s;
     }
