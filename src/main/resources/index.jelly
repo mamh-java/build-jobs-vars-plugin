@@ -4,5 +4,5 @@
   Since we don't really have anything dynamic here, let's just use static HTML. 
 -->
 <div>
-  This plugin is used to set jobs build variables: jenkins jobs name.
+  This plugin is used to set build idle jobs variables
 </div>
