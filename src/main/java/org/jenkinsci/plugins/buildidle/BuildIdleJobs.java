@@ -83,7 +83,6 @@ public class BuildIdleJobs extends SimpleBuildWrapper {
 
     @Override
     public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars initialEnvironment) throws IOException, InterruptedException {
-        LOGGER.info("public void setUp: " + this.jobs);
         Map<String, String> variables = new HashMap<>();
         makeVariables(build, listener, variables);
         for (Map.Entry<String, String> entry : variables.entrySet()) {
@@ -198,12 +197,13 @@ public class BuildIdleJobs extends SimpleBuildWrapper {
         }
 
         List<String> lastN = jobRunningStatus.subList(Math.max(0, jobRunningSize - choice), jobRunningSize);
-        listener.getLogger().println("the lastN jobRunningStatus  is " + getListtoString(lastN) + "");
         List<String> jobRunningJob = new ArrayList<>();
         for (String jn : lastN) {
             String j = jn.split(":")[0];
             jobRunningJob.add(j);
         }
+        Collections.reverse(jobRunningJob);
+        listener.getLogger().println("the idle jobRunningStatus  is " + getListtoString(jobRunningJob) + "");
 
         variables.put("BUILD_IDLE_JOBS", getListtoString(jobRunningJob));
 
