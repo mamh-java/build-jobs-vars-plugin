@@ -174,7 +174,7 @@ public class BuildJobs extends SimpleBuildWrapper {
         List<List<String>> jobList = new ArrayList<>();
 
         List<String> newjobs = evaluateMacro(build, listener, jobs); //展开默认的 this.jobs 变量中的
-        listener.getLogger().println("the new jobs list is " + newjobs + "");
+        listener.getLogger().println("the default jobs list is " + newjobs + "");
         jobList.add(newjobs);// 先加上这个默认的job list
 
         List<List<String>> otherjobs = evaluateOther(build, listener, otherJobs); // 展开其他jobs。 也就是 otherJobs 中的
@@ -183,26 +183,42 @@ public class BuildJobs extends SimpleBuildWrapper {
         listener.getLogger().println("the all list is " + jobList + "");
 
         List<String> jobRunningStatus = getJobRunningStatus(jobList);
+        int jobRunningSize = jobRunningStatus.size();
 
-        listener.getLogger().println("the jobRunningStatus  is " + getJobListtoString(jobRunningStatus) + "");
+        listener.getLogger().println("the all jobRunningStatus  is " + getListtoString(jobRunningStatus) + "");
 
-        variables.put("BUILD_ALL_JOBS", getJobListtoString(jobRunningStatus));
+        variables.put("BUILD_ALL_JOBS", getListtoString(jobRunningStatus));
+
+        int choice = 1;
+        if (choicenumber <= 0) {
+            choice = 1;
+        }
+        if (choicenumber > jobRunningSize) {
+            choice = jobRunningSize;
+        }
+
+        List<String> lastN = jobRunningStatus.subList(Math.max(0, jobRunningSize - choice), jobRunningSize);
+        listener.getLogger().println("the lastN jobRunningStatus  is " + getListtoString(lastN) + "");
+        List<String> jobRunningJob = new ArrayList<>();
+        for (String jn : lastN) {
+            String j = jn.split(":")[0];
+            jobRunningJob.add(j);
+        }
+
+        variables.put("BUILD_IDLE_JOBS", getListtoString(jobRunningJob));
 
     }
 
     private List<List<String>> evaluateOther(Run<?, ?> build, TaskListener listener, List<ScheduledJobs> otherJobs) {
         List<List<String>> list = new ArrayList<>();
-
+        if (otherJobs == null) {
+            return list;
+        }
         for (ScheduledJobs job : otherJobs) {
             int startTime = job.getStartTime();
             int endTime = job.getEndTime();
             String jobname = job.getJobname();
-
             List<String> newjobname = evaluateMacro(build, listener, jobname); // 展开后的jobname
-
-            listener.getLogger().println("the startTime is " + startTime + "， endTime is " + endTime);
-            listener.getLogger().println("the newjobname is " + newjobname);
-
             if (checkHourInRange(startTime, endTime)) {
                 list.add(newjobname);
             }
@@ -237,7 +253,7 @@ public class BuildJobs extends SimpleBuildWrapper {
         try {
             File workspace = build.getRootDir();
             String s = TokenMacro.expandAll(build, new FilePath(workspace), listener, template);
-            list.addAll(getJobStringtoList(s));
+            list.addAll(getStringtoList(s));
         } catch (InterruptedException | IOException | MacroEvaluationException e) {
             LOGGER.info(e.getMessage());
         }
@@ -287,12 +303,12 @@ public class BuildJobs extends SimpleBuildWrapper {
 
     }
 
-    private List<String> getJobStringtoList(String jobsstr) {
-        Iterable<String> iterable = Splitter.on(',').trimResults().omitEmptyStrings().split(jobsstr);
+    private List<String> getStringtoList(String str) {
+        Iterable<String> iterable = Splitter.on(',').trimResults().omitEmptyStrings().split(str);
         return ImmutableSet.copyOf(Iterables.filter(iterable, Predicates.not(Predicates.isNull()))).asList();
     }
 
-    private String getJobListtoString(List<String> list) {
+    private String getListtoString(List<String> list) {
         String s = Joiner.on(",").skipNulls().join(list); // 最后用逗号组合到一起
         return s;
     }
