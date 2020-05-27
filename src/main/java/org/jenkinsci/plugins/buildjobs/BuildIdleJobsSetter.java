@@ -42,8 +42,8 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
 
-public class BuildIdleJobs extends SimpleBuildWrapper {
-    private static final Logger LOGGER = Logger.getLogger(BuildIdleJobs.class.getName());
+public class BuildIdleJobsSetter extends SimpleBuildWrapper {
+    private static final Logger LOGGER = Logger.getLogger(BuildIdleJobsSetter.class.getName());
 
     private String jobs;
     private int choicenumber;
@@ -51,7 +51,7 @@ public class BuildIdleJobs extends SimpleBuildWrapper {
     private List<ScheduledJobs> otherJobs; // 存放其他 job的。 可以自定义时间段来决定是否使用这些job
 
     @DataBoundConstructor
-    public BuildIdleJobs(String jobs, int choicenumber, List<ScheduledJobs> otherJobs) {
+    public BuildIdleJobsSetter(String jobs, int choicenumber, List<ScheduledJobs> otherJobs) {
         this.jobs = jobs;
         this.choicenumber = choicenumber;
         this.otherJobs = otherJobs;
