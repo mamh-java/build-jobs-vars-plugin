@@ -1,4 +1,4 @@
-package org.jenkinsci.plugins.buildidle;
+package org.jenkinsci.plugins.buildjobs;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
