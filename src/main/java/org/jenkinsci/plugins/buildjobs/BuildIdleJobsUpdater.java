@@ -2,16 +2,17 @@ package org.jenkinsci.plugins.buildjobs;
 
 import hudson.EnvVars;
 import hudson.Extension;
-import hudson.FilePath;
 import hudson.Launcher;
+import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.AutoCompletionCandidates;
+import hudson.model.BuildListener;
+import hudson.model.Environment;
 import hudson.model.Item;
 import hudson.model.ItemGroup;
 import hudson.model.Job;
-import hudson.model.Run;
-import hudson.model.TaskListener;
-import hudson.tasks.BuildWrapperDescriptor;
+import hudson.tasks.BuildStepDescriptor;
+import hudson.tasks.Builder;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildWrapper;
 import org.kohsuke.stapler.AncestorInPath;
@@ -24,7 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
-public class BuildIdleJobsSetter extends SimpleBuildWrapper {
+
+public class BuildIdleJobsUpdater extends Builder {
     private static final Logger LOGGER = Logger.getLogger(BuildIdleJobsSetter.class.getName());
 
     private String jobs;
@@ -33,7 +35,7 @@ public class BuildIdleJobsSetter extends SimpleBuildWrapper {
     private List<ScheduledJobs> otherJobs; // 存放其他 job的。 可以自定义时间段来决定是否使用这些job
 
     @DataBoundConstructor
-    public BuildIdleJobsSetter(String jobs, int choicenumber, List<ScheduledJobs> otherJobs) {
+    public BuildIdleJobsUpdater(String jobs, int choicenumber, List<ScheduledJobs> otherJobs) {
         this.jobs = jobs;
         this.choicenumber = choicenumber;
         this.otherJobs = otherJobs;
@@ -64,26 +66,34 @@ public class BuildIdleJobsSetter extends SimpleBuildWrapper {
     }
 
     @Override
-    public void setUp(Context context, Run<?, ?> build, FilePath workspace, Launcher launcher, TaskListener listener, EnvVars env) throws IOException, InterruptedException {
-        Map<String, String> variables = new HashMap<>();
+    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         MakeVariablesExcutor excutor = new MakeVariablesExcutor(choicenumber, jobs, otherJobs);
+        Map<String, String> variables = new HashMap<>();
         excutor.makeVariables(build, listener, variables);
-        for (Map.Entry<String, String> entry : variables.entrySet()) {
-            context.env(entry.getKey(), entry.getValue());
-        }
+
+        build.addAction(new EnvironmentVarSetter(variables));
+        return true;
+
+    }
+
+    @Override
+    public DescriptorImpl getDescriptor() {
+        return (DescriptorImpl) super.getDescriptor();
     }
 
     @Extension
-    public static class DescriptorImpl extends BuildWrapperDescriptor {
-        @Override
-        public boolean isApplicable(AbstractProject<?, ?> item) {
-            return true;
+    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
+        public DescriptorImpl() {
+            load();
         }
 
         @Override
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+            return true;
+        }
+
         public String getDisplayName() {
-            //build 和 jobs至今多个空格，2个空格，这样这个插件就能排在前面执行了
-            return "Set Build  Jobs Variables";
+            return "Update Build  Jobs Variables";
         }
 
         /**
