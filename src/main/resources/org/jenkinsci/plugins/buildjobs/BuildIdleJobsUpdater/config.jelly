@@ -7,7 +7,7 @@
 
     <f:advanced>
         <!-- 添加 其他job， 这些job可以自定义Scheduled的时间段， 例如晚上20点 到 23点 这一段时间才可以使用 -->
-        <f:entry field="otherJobs" title="${%Scheduled jobs}" description="${%Scheduled jobs config}">
+        <f:entry field="otherJobs" title="${%Scheduled jobs}">
             <f:repeatable field="otherJobs" add="${%Add Scheduled jobs}">
                 <table width="100%">
                     <br/>
